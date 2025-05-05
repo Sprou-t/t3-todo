@@ -42,4 +42,6 @@ yarn-error.log*
 next-env.d.ts
 
 # database
-/server/generated/prisma/
+/src/server/generated/prisma/
+
+Todo.md
