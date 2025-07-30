@@ -1,0 +1,8 @@
+
+Todo:
+  ✔ edit production docker-compose file and figure out how production works @done(25-07-28 22:47) @lasted(4s) -- dont need 2 versions for both
+  ☐ follow vid to deploy nextjs into aws
+  ☐ set up springboot and dockerfile, then deploy to aws
+  answer my qns:
+    ☐ software can deploy on all hardware?
+    ☐ docker helps save time -- know how it is deployed?

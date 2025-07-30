@@ -8,12 +8,14 @@ export const env = createEnv({
      */
     server: {
         AUTH_SECRET:
-            process.env.NODE_ENV === "production"
-                ? z.string()
-                : z.string().optional(),
+            process.env.SKIP_ENV_VALIDATION
+                ? z.string().optional()
+                : process.env.NODE_ENV === "production"
+                    ? z.string()
+                    : z.string().optional(),
         // AUTH_DISCORD_ID: z.string(),
         // AUTH_DISCORD_SECRET: z.string(),
-        DATABASE_URL: z.string().url(),
+        DATABASE_URL: process.env.SKIP_ENV_VALIDATION ? z.string().optional() : z.string().url().optional(),
         NODE_ENV: z
             .enum(["development", "test", "production"])
             .default("development"),
@@ -41,7 +43,7 @@ export const env = createEnv({
      * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
      * useful for Docker builds.
      */
-    skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+    skipValidation: !!process.env.SKIP_ENV_VALIDATION || process.env.NODE_ENV === "production",
     /**
      * Makes it so that empty strings are treated as undefined. `SOME_VAR: z.string()` and
      * `SOME_VAR=''` will throw an error.

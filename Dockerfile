@@ -32,11 +32,19 @@ COPY . .
 # Generate Prisma client
 RUN pnpm prisma generate
 
+# Build arguments for environment variables
+# ARG DATABASE_URL
+# ARG AUTH_SECRET
+
+# set env variables
+# ENV DATABASE_URL=$DATABASE_URL
+# ENV AUTH_SECRET=$AUTH_SECRET
+
 # Disable Next.js telemetry
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Build the application
-RUN SKIP_ENV_VALIDATION=true pnpm run build
+# Build the application (without running migrations)
+RUN SKIP_ENV_VALIDATION=true pnpm prisma generate && pnpm next build
 
 # =============================================================================
 # PRODUCTION STAGE
@@ -71,3 +79,4 @@ EXPOSE 3000
 
 # Start the application
 CMD ["node", "server.js"]
+
