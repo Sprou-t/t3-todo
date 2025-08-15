@@ -34,7 +34,7 @@ services:
 
     # Environment variables for your application
     env_file:
-      - .env
+      - .env.dev
 
     # Keep container running in interactive mode for development instead of exiting immediately(DKDC)
     stdin_open: true

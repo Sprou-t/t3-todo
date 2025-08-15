@@ -6,3 +6,20 @@ Todo:
   answer my qns:
     ☐ software can deploy on all hardware?
     ☐ docker helps save time -- know how it is deployed?
+
+debug qns:
+    is it w dockerfile:
+        ☐ follow vid to a tee - if yes, then shd be dockerfile and env --> rebuild image
+
+todolist:
+    ✔ why need :3000 can remove that? -> learn to set up alb to get rid of :3000 @done(25-08-02 02:54)
+    ✔ create notes @done(25-08-02 15:26)
+    ✘ continue with setting up ssl encryption (Let’s Encrypt + certbot => free) @cancelled(25-08-02 15:26)
+    ✔ set up next frontend and deploy with own alb @done(25-08-02 19:13)
+    ☐ set up github actions for t3-todo and test w env variables (do sas leftover stuff)
+    ☐ set up dockerized deployment using springboot, postgres, neondb with own alb
+    ☐ add frontend function and connect to backend
+    ☐ make frontend and backend communicate with each other btw springboot and normal nextjs app
+    ☐ set up devops action using github actions
+    ☐ ponder over how i can solve the issue of auto updating deployed container when i push to github inluding env variables
+    ☐ try set up ssl encryption oso (if free)
