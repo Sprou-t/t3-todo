@@ -33,10 +33,12 @@ jobs:
         run: | # Determine environment and ECS service info based on branch
           if [[ "${GITHUB_REF##*/}" == "main" ]]; then
             echo "ENV=production" >> $GITHUB_OUTPUT
+            echo "ENV_SUFFIX=" >> $GITHUB_OUTPUT
             echo "CLUSTER=t3-todo" >> $GITHUB_OUTPUT
             echo "SERVICE=t3-todo-task-service-eu049xmc" >> $GITHUB_OUTPUT
           else
             echo "ENV=staging" >> $GITHUB_OUTPUT
+            echo "ENV_SUFFIX=-staging" >> $GITHUB_OUTPUT
             echo "CLUSTER=t3-todo-staging" >> $GITHUB_OUTPUT
             echo "SERVICE=t3-todo-staging-task-service-ih5tudbe" >> $GITHUB_OUTPUT
           fi
@@ -80,6 +82,7 @@ jobs:
         run: |
           cp infra/taskdef.template.json task-definition.json
           sed -i "s/\${ENV}/${{ steps.env.outputs.ENV }}/g" task-definition.json
+          sed -i "s/\${ENV_SUFFIX}/${{ steps.env.outputs.ENV_SUFFIX }}/g" task-definition.json
           sed -i "s|\${IMAGE_URI}|${{ steps.build-image.outputs.image }}|g" task-definition.json
           echo "📋 Task definition created:"
           cat task-definition.json
