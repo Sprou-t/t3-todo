@@ -5,6 +5,8 @@ This document explains the `taskdef.template.json` file used for deploying the T
 ## Overview
 This template uses variables (${VAR}) that get replaced during deployment to create environment-specific task definitions (task def tells ecs how to run the containers).
 
+`TLDR: taskdef.template.json is used to create environment specific task definitions which are used to tell ecs how to run our ecs clusters`
+
 ## Configuration Breakdown
 
 ### Task Level Configuration
