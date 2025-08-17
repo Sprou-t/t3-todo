@@ -32,7 +32,7 @@ jobs:
         id: env
         run: | # Determine environment and ECS service info based on branch
           if [[ "${GITHUB_REF##*/}" == "main" ]]; then
-            echo "ENV=prod" >> $GITHUB_OUTPUT
+            echo "ENV=production" >> $GITHUB_OUTPUT
             echo "CLUSTER=t3-todo" >> $GITHUB_OUTPUT
             echo "SERVICE=t3-todo-task-service-eu049xmc" >> $GITHUB_OUTPUT
           else
