@@ -1,5 +1,5 @@
 {
-    "family": "t3-todo-${ENV}",
+    "family": "t3-todo-${ENV}-task",
     "networkMode": "awsvpc",
     "requiresCompatibilities": [
         "FARGATE"

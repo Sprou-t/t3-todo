@@ -11,7 +11,7 @@ on:
 # Only allow one concurrent deployment per branch
 concurrency:
   group: ${{ github.ref }}-deploy
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 # Set environment-wide variables
 # set the ECR_REPOSITORY environment variable so that whenever your workflow
