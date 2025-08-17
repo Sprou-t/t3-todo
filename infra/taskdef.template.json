@@ -27,11 +27,11 @@
             "secrets": [
                 {
                     "name": "DATABASE_URL",
-                    "valueFrom": "/t3-todo/${ENV}/DATABASE_URL"
+                    "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:108782083795:secret:t3-todo/${ENV}/DATABASE_URL"
                 },
                 {
                     "name": "AUTH_SECRET",
-                    "valueFrom": "/t3-todo/${ENV}/AUTH_SECRET"
+                    "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:108782083795:secret:t3-todo/${ENV}/AUTH_SECRET"
                 }
             ],
             "logConfiguration": {
