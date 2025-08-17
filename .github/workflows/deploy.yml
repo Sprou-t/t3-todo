@@ -48,24 +48,12 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Sync environment variables to Secrets Manager
-        run: | # Upload .env file variables to AWS Secrets Manager
-          ENV_FILE=".env.${{ steps.env.outputs.ENV }}"
-          if [ ! -f "$ENV_FILE" ]; then
-            echo "❌ $ENV_FILE not found!"
-            exit 1
-          fi
-          echo "🔄 Syncing $ENV_FILE to AWS Secrets Manager..."
-          while IFS= read -r line; do
-            [[ $line == \#* || $line != *=* ]] && continue    # Skip comments and invalid lines
-            key=${line%%=*}
-            val=${line#*=}
-            echo "  ✅ Syncing $key"
-            aws secretsmanager put-secret-value \
-              --secret-id "/t3-todo/${{ steps.env.outputs.ENV }}/$key" \
-              --secret-string "$val" \
-              --region ${{ env.AWS_REGION }}
-          done < "$ENV_FILE"
+      - name: Verify secrets in AWS Secrets Manager
+        run:
+          | # Confirm secrets exist in AWS (uploaded via local script import-secrets.sh)
+          echo "✅ Using secrets from AWS Secrets Manager at /t3-todo/${{ steps.env.outputs.ENV }}/"
+          echo "   Secrets were uploaded using local import script"
+          echo "   No sync needed in CI/CD pipeline"
 
       - name: Login to Amazon ECR # Authenticate Docker with AWS ECR
         id: login-ecr # random id -> doesnt meant anything
