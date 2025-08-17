@@ -1,42 +1,110 @@
-name: Deploy to Vercel
+# Name of this GitHub Actions workflow
+name: Deploy to ECS
 
+# Trigger the workflow on push or pull request to staging or main branches
 on:
   push:
-    branches: [main]
+    branches: [staging, main] # Start on push to staging or main
   pull_request:
-    branches: [main]
+    branches: [main] # Optionally, on PRs targeting main
+
+# Only allow one concurrent deployment per branch
+concurrency:
+  group: ${{ github.ref }}-deploy
+  cancel-in-progress: true
+
+# Set environment-wide variables
+# set the ECR_REPOSITORY environment variable so that whenever your workflow
+# runs a Docker build or push command, it can reference the ECR repo name automatically using $ECR_REPOSITORY
+env:
+  ECR_REPOSITORY: t3-todo # Name of your ECR repository
+  AWS_REGION: ap-southeast-1 # AWS region for AWS CLI operations
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    
+  deploy: # Deploy to ECS every time a new commit is pushed to staging or main
+    runs-on: ubuntu-latest # Run on GitHub-hosted Ubuntu runner
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-    
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        version: 10.10.0
-    
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile
-    
-    - name: Build application
-      run: pnpm run build
-      env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
-        AUTH_URL: ${{ secrets.AUTH_URL }}
-    
-    - name: Deploy to Vercel
-      uses: amondnet/vercel-action@v25
-      with:
-        vercel-token: ${{ secrets.VERCEL_TOKEN }}
-        vercel-org-id: ${{ secrets.ORG_ID }}
-        vercel-project-id: ${{ secrets.PROJECT_ID }}
-        working-directory: ./ 
+      - name: Checkout code # Checkout your repository files
+        uses: actions/checkout@v4
+
+      - name: Set environment variables
+        id: env
+        run: | # Determine environment and ECS service info based on branch
+          if [[ "${GITHUB_REF##*/}" == "main" ]]; then
+            echo "ENV=production" >> $GITHUB_OUTPUT
+            echo "CLUSTER=t3-todo" >> $GITHUB_OUTPUT
+            echo "SERVICE=t3-todo-task-service-eu049xmc" >> $GITHUB_OUTPUT
+          else
+            echo "ENV=staging" >> $GITHUB_OUTPUT
+            echo "CLUSTER=t3-todo-staging" >> $GITHUB_OUTPUT
+            echo "SERVICE=t3-todo-staging-task-service-ih5tudbe" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Configure AWS credentials # Configure AWS CLI using github secrets
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sync environment variables to Secrets Manager
+        run: | # Upload .env file variables to AWS Secrets Manager
+          ENV_FILE=".env.${{ steps.env.outputs.ENV }}"
+          if [ ! -f "$ENV_FILE" ]; then
+            echo "❌ $ENV_FILE not found!"
+            exit 1
+          fi
+          echo "🔄 Syncing $ENV_FILE to AWS Secrets Manager..."
+          while IFS= read -r line; do
+            [[ $line == \#* || $line != *=* ]] && continue    # Skip comments and invalid lines
+            key=${line%%=*}
+            val=${line#*=}
+            echo "  ✅ Syncing $key"
+            aws secretsmanager put-secret-value \
+              --secret-id "/t3-todo/${{ steps.env.outputs.ENV }}/$key" \
+              --secret-string "$val" \
+              --region ${{ env.AWS_REGION }}
+          done < "$ENV_FILE"
+
+      - name: Login to Amazon ECR # Authenticate Docker with AWS ECR
+        id: login-ecr # random id -> doesnt meant anything
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }} # ECR registry URL (from login)
+          IMAGE_TAG: ${{ steps.env.outputs.ENV }}-${{ github.sha }}# Tag unique to env/commit
+        run: | # Build Docker image, tag it, push to ECR
+          echo "🔨 Building Docker image..."
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          echo "📤 Pushing image to ECR..."
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Replace placeholders in task definition
+        id: task-def
+        # Fill ENV and Docker image URI variable in the ECS taskdef template with values depending on the environment/branch we are running for
+        # sed (stream editor) is a Unix command used for text substitution and editing. string inside "" is wat we want to replace
+        # s/\\pattern/replacement/flags is how we are substituting the ENV variables and IMAGE_URI with the actual values
+        run: |
+          sed "s/\\${ENV}/${{ steps.env.outputs.ENV }}/g; s|\\${IMAGE_URI}|${{ steps.build-image.outputs.image }}|g" \
+            infra/taskdef.template.json > task-definition.json
+          echo "📋 Task definition created:"
+          cat task-definition.json
+
+      - name: Deploy to Amazon ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1 # Update ECS service with new task
+        with:
+          task-definition: task-definition.json
+          service: ${{ steps.env.outputs.SERVICE }}
+          cluster: ${{ steps.env.outputs.CLUSTER }}
+          wait-for-service-stability: true
+
+      - name: Deployment complete
+        run: | # Print a message on success
+          echo "🚀 Deployment to ${{ steps.env.outputs.ENV }} completed successfully!"
+          if [[ "${{ steps.env.outputs.ENV }}" == "staging" ]]; then
+            echo "🌐 Test your staging environment manually"
+          fi
