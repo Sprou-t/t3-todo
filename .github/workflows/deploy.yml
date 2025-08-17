@@ -75,10 +75,12 @@ jobs:
         id: task-def
         # Fill ENV and Docker image URI variable in the ECS taskdef template with values depending on the environment/branch we are running for
         # sed (stream editor) is a Unix command used for text substitution and editing. string inside "" is wat we want to replace
-        # s/\\pattern/replacement/flags is how we are substituting the ENV variables and IMAGE_URI with the actual values
+        # s/\pattern/replacement/flags is how we are substituting the ENV variables and IMAGE_URI with the actual values
+        # cat ...: means "print the contents of the file task-definition.json to the terminal (stdout) - only for logging and debugging
         run: |
-          sed "s/\\${ENV}/${{ steps.env.outputs.ENV }}/g; s|\\${IMAGE_URI}|${{ steps.build-image.outputs.image }}|g" \
-            infra/taskdef.template.json > task-definition.json
+          cp infra/taskdef.template.json task-definition.json
+          sed -i "s/\${ENV}/${{ steps.env.outputs.ENV }}/g" task-definition.json
+          sed -i "s|\${IMAGE_URI}|${{ steps.build-image.outputs.image }}|g" task-definition.json
           echo "📋 Task definition created:"
           cat task-definition.json
 
