@@ -5,8 +5,8 @@ name: Deploy to ECS
 on:
   push:
     branches: [staging, main] # Start on push to staging or main
-  # pull_request:
-  #   branches: [main] # Optionally, on PRs targeting main
+  pull_request:
+    branches: [main] # Optionally, on PRs targeting main
 
 # Only allow one concurrent deployment per branch
 concurrency:
