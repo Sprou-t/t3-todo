@@ -39,7 +39,6 @@ export function TodoCard({ id, title, description, onDelete }: TodoCardProps) {
                 className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-xs text-white transition hover:bg-red-700 disabled:opacity-50"
                 aria-label="Delete todo"
             >
-                {isDeleting ? "..." : "×"}
             </button>
 
             <h2 className="pr-8 text-lg font-bold text-white">{title}</h2>
