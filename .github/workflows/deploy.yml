@@ -21,7 +21,7 @@ env:
   AWS_REGION: ap-southeast-1 # AWS region for AWS CLI operations
 
 jobs:
-  deploy: # Deploy to ECS every time a new commit is pushed to staging or main
+  deploy: # Deploy to ECS every time a new commit is pushed to staging or main(production)
     runs-on: ubuntu-latest # Run on GitHub-hosted Ubuntu runner
 
     steps:
