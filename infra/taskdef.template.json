@@ -1,46 +1,48 @@
 {
-  "family": "t3-todo-${ENV}",
-  "networkMode": "awsvpc",
-  "requiresCompatibilities": ["FARGATE"],
-  "cpu": "256",
-  "memory": "512",
-  "executionRoleArn": "arn:aws:iam::108782083795:role/ecsTaskExecutionRole",
-  "containerDefinitions": [
-    {
-      "name": "t3-todo",
-      "image": "${IMAGE_URI}",
-      "essential": true,
-      "portMappings": [
+    "family": "t3-todo-${ENV}-task",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "256",
+    "memory": "512",
+    "executionRoleArn": "arn:aws:iam::108782083795:role/ecsTaskExecutionRole",
+    "containerDefinitions": [
         {
-          "containerPort": 3000,
-          "protocol": "tcp"
+            "name": "t3-todo${ENV_SUFFIX}",
+            "image": "${IMAGE_URI}",
+            "essential": true,
+            "portMappings": [
+                {
+                    "containerPort": 3000,
+                    "protocol": "tcp"
+                }
+            ],
+            "environment": [
+                {
+                    "name": "NODE_ENV",
+                    "value": "${ENV}"
+                }
+            ],
+            "secrets": [
+                {
+                    "name": "DATABASE_URL",
+                    "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:108782083795:secret:t3-todo/${ENV}/DATABASE_URL"
+                },
+                {
+                    "name": "AUTH_SECRET",
+                    "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:108782083795:secret:t3-todo/${ENV}/AUTH_SECRET"
+                }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/t3-todo-${ENV}",
+                    "awslogs-region": "ap-southeast-1",
+                    "awslogs-stream-prefix": "ecs",
+                    "awslogs-create-group": "true"
+                }
+            }
         }
-      ],
-      "environment": [
-        {
-          "name": "NODE_ENV",
-          "value": "${ENV}"
-        }
-      ],
-      "secrets": [
-        {
-          "name": "DATABASE_URL",
-          "valueFrom": "/t3-todo/${ENV}/DATABASE_URL"
-        },
-        {
-          "name": "AUTH_SECRET",
-          "valueFrom": "/t3-todo/${ENV}/AUTH_SECRET"
-        }
-      ],
-      "logConfiguration": {
-        "logDriver": "awslogs",
-        "options": {
-          "awslogs-group": "/ecs/t3-todo-${ENV}",
-          "awslogs-region": "ap-southeast-1",
-          "awslogs-stream-prefix": "ecs",
-          "awslogs-create-group": "true"
-        }
-      }
-    }
-  ]
+    ]
 }

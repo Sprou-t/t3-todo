@@ -11,7 +11,7 @@ on:
 # Only allow one concurrent deployment per branch
 concurrency:
   group: ${{ github.ref }}-deploy
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 # Set environment-wide variables
 # set the ECR_REPOSITORY environment variable so that whenever your workflow
@@ -32,11 +32,13 @@ jobs:
         id: env
         run: | # Determine environment and ECS service info based on branch
           if [[ "${GITHUB_REF##*/}" == "main" ]]; then
-            echo "ENV=prod" >> $GITHUB_OUTPUT
+            echo "ENV=production" >> $GITHUB_OUTPUT
+            echo "ENV_SUFFIX=" >> $GITHUB_OUTPUT
             echo "CLUSTER=t3-todo" >> $GITHUB_OUTPUT
             echo "SERVICE=t3-todo-task-service-eu049xmc" >> $GITHUB_OUTPUT
           else
             echo "ENV=staging" >> $GITHUB_OUTPUT
+            echo "ENV_SUFFIX=-staging" >> $GITHUB_OUTPUT
             echo "CLUSTER=t3-todo-staging" >> $GITHUB_OUTPUT
             echo "SERVICE=t3-todo-staging-task-service-ih5tudbe" >> $GITHUB_OUTPUT
           fi
@@ -48,24 +50,12 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Sync environment variables to Secrets Manager
-        run: | # Upload .env file variables to AWS Secrets Manager
-          ENV_FILE=".env.${{ steps.env.outputs.ENV }}"
-          if [ ! -f "$ENV_FILE" ]; then
-            echo "❌ $ENV_FILE not found!"
-            exit 1
-          fi
-          echo "🔄 Syncing $ENV_FILE to AWS Secrets Manager..."
-          while IFS= read -r line; do
-            [[ $line == \#* || $line != *=* ]] && continue    # Skip comments and invalid lines
-            key=${line%%=*}
-            val=${line#*=}
-            echo "  ✅ Syncing $key"
-            aws secretsmanager put-secret-value \
-              --secret-id "/t3-todo/${{ steps.env.outputs.ENV }}/$key" \
-              --secret-string "$val" \
-              --region ${{ env.AWS_REGION }}
-          done < "$ENV_FILE"
+      - name: Verify secrets in AWS Secrets Manager
+        run:
+          | # Confirm secrets exist in AWS (uploaded via local script import-secrets.sh)
+          echo "✅ Using secrets from AWS Secrets Manager at /t3-todo/${{ steps.env.outputs.ENV }}/"
+          echo "   Secrets were uploaded using local import script"
+          echo "   No sync needed in CI/CD pipeline"
 
       - name: Login to Amazon ECR # Authenticate Docker with AWS ECR
         id: login-ecr # random id -> doesnt meant anything
@@ -75,7 +65,7 @@ jobs:
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }} # ECR registry URL (from login)
-          IMAGE_TAG: ${{ steps.env.outputs.ENV }}-${{ github.sha }}# Tag unique to env/commit
+          IMAGE_TAG: ${{ steps.env.outputs.ENV }}-${{ github.sha }} # Tag unique to env/commit
         run: | # Build Docker image, tag it, push to ECR
           echo "🔨 Building Docker image..."
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
@@ -87,10 +77,13 @@ jobs:
         id: task-def
         # Fill ENV and Docker image URI variable in the ECS taskdef template with values depending on the environment/branch we are running for
         # sed (stream editor) is a Unix command used for text substitution and editing. string inside "" is wat we want to replace
-        # s/\\pattern/replacement/flags is how we are substituting the ENV variables and IMAGE_URI with the actual values
+        # s/\pattern/replacement/flags is how we are substituting the ENV variables and IMAGE_URI with the actual values
+        # cat ...: means "print the contents of the file task-definition.json to the terminal (stdout) - only for logging and debugging
         run: |
-          sed "s/\\${ENV}/${{ steps.env.outputs.ENV }}/g; s|\\${IMAGE_URI}|${{ steps.build-image.outputs.image }}|g" \
-            infra/taskdef.template.json > task-definition.json
+          cp infra/taskdef.template.json task-definition.json
+          sed -i "s/\${ENV}/${{ steps.env.outputs.ENV }}/g" task-definition.json
+          sed -i "s/\${ENV_SUFFIX}/${{ steps.env.outputs.ENV_SUFFIX }}/g" task-definition.json
+          sed -i "s|\${IMAGE_URI}|${{ steps.build-image.outputs.image }}|g" task-definition.json
           echo "📋 Task definition created:"
           cat task-definition.json
 

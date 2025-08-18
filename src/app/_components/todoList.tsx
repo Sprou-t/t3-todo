@@ -1,5 +1,6 @@
 "use client";
 
+import { api } from "~/trpc/react";
 import { TodoCard } from "./todoCard";
 
 interface Todo {
@@ -17,21 +18,31 @@ interface TodoListProps {
 }
 
 export function TodoList({ todos }: TodoListProps) {
+    // Use TRPC utils to refresh the todo list after deletion
+    const utils = api.useUtils();
+
+    const handleTodoDelete = () => {
+        // Invalidate and refetch the todos list
+        void utils.todo.getAll.invalidate();
+    };
+
     if (!todos || todos.length === 0) {
         return (
-            <div className="text-center text-gray-400">
-                <p className="text-lg font-semibold">No todos found</p>
-                <p className="text-sm">Start by creating a new todo!</p>
+            <div className="text-center text-gray-500">
+                No todos found. Create your first todo!
             </div>
         );
     }
+
     return (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-8">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {todos.map((todo) => (
                 <TodoCard
                     key={todo.id}
-                    title={todo.title}
-                    description={todo.description ?? ""}
+                    id={todo.id}
+                    title={todo.title || "Untitled"}
+                    description={todo.description || "No description"}
+                    onDelete={handleTodoDelete}
                 />
             ))}
         </div>
