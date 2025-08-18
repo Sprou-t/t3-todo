@@ -21,7 +21,7 @@ env:
   AWS_REGION: ap-southeast-1 # AWS region for AWS CLI operations
 
 jobs:
-  deploy: # Deploy to ECS every time a new commit is pushed to staging or main(production)
+  deploy: # Deploy to ECS every time a new commit is pushed to staging or main
     runs-on: ubuntu-latest # Run on GitHub-hosted Ubuntu runner
 
     steps:
@@ -30,14 +30,8 @@ jobs:
 
       - name: Set environment variables
         id: env
-        # Determine environment and ECS service info based on branch
-        run: |
-          if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "main" ]]; then
-            echo "ENV=production" >> $GITHUB_OUTPUT
-            echo "ENV_SUFFIX=" >> $GITHUB_OUTPUT
-            echo "CLUSTER=t3-todo" >> $GITHUB_OUTPUT
-            echo "SERVICE=t3-todo-task-service-eu049xmc" >> $GITHUB_OUTPUT
-          elif [[ "${GITHUB_REF##*/}" == "main" ]]; then
+        run: | # Determine environment and ECS service info based on branch
+          if [[ "${GITHUB_REF##*/}" == "main" ]]; then
             echo "ENV=production" >> $GITHUB_OUTPUT
             echo "ENV_SUFFIX=" >> $GITHUB_OUTPUT
             echo "CLUSTER=t3-todo" >> $GITHUB_OUTPUT
@@ -94,8 +88,6 @@ jobs:
           cat task-definition.json
 
       - name: Deploy to Amazon ECS
-        # Only deploy on push events(triggered by merge in my case), not pull requests
-        if: github.event_name == 'push'
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1 # Update ECS service with new task
         with:
           task-definition: task-definition.json
@@ -103,21 +95,7 @@ jobs:
           cluster: ${{ steps.env.outputs.CLUSTER }}
           wait-for-service-stability: true
 
-      - name: Validate task definition for PR
-        # Only validate on pull requests, don't deploy
-        if: github.event_name == 'pull_request'
-        run: |
-          echo "✅ Task definition validation complete for production deployment"
-          echo "📋 Would deploy with these settings:"
-          echo "Environment: ${{ steps.env.outputs.ENV }}"
-          echo "Cluster: ${{ steps.env.outputs.CLUSTER }}"
-          echo "Service: ${{ steps.env.outputs.SERVICE }}"
-          echo "Image: ${{ steps.build-image.outputs.image }}"
-          echo "🔍 PR validation successful - ready to merge for production deployment!"
-
       - name: Deployment complete
-        # Only show deployment complete message for actual deployments
-        if: github.event_name == 'push'
         run: | # Print a message on success
           echo "🚀 Deployment to ${{ steps.env.outputs.ENV }} completed successfully!"
           if [[ "${{ steps.env.outputs.ENV }}" == "staging" ]]; then
