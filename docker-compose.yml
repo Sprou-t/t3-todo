@@ -34,12 +34,18 @@ services:
 
     # Environment variables for your application
     env_file:
-      - .env.dev
+      - .env
 
     # Keep container running in interactive mode for development instead of exiting immediately(DKDC)
     stdin_open: true
     # Allocate a pseudo-TTY for interactive commands
     tty: true
+    # Add logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     # --------------PostgreSQL Database Service (LOCAL ONLY - NOT FOR CLOUD DB LIKE NEONDB)--------------
     # Wait for PostgreSQL to be ready before starting the app (LOCAL POSTGRES ONLY)
     # Uncomment this section if using local PostgreSQL instead of cloud database

@@ -18,28 +18,14 @@ export const todoRouter = createTRPCRouter({
             return await ctx.db.todo.create({
                 data: input,
             })
-        })
-    // create: protectedProcedure
-    //     .input(z.object({ name: z.string().min(1) }))
-    //     .mutation(async ({ ctx, input }) => {
-    //         return ctx.db.post.create({
-    //             data: {
-    //                 name: input.name,
-    //                 createdBy: { connect: { id: ctx.session.user.id } },
-    //             },
-    //         });
-    //     }),
-
-    // getLatest: protectedProcedure.query(async ({ ctx }) => {
-    //     const post = await ctx.db.post.findFirst({
-    //         orderBy: { createdAt: "desc" },
-    //         where: { createdBy: { id: ctx.session.user.id } },
-    //     });
-
-    //     return post ?? null;
-    // }),
-
-    // getSecretMessage: protectedProcedure.query(() => {
-    //     return "you can now see this secret message!";
-    // }),
+        }),
+    delete: publicProcedure
+        .input(z.object({
+            id: z.number(),
+        }))
+        .mutation(async ({ ctx, input }) => {
+            return await ctx.db.todo.delete({
+                where: { id: input.id },
+            })
+        }),
 });
