@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Todo" ADD COLUMN     "priority" INTEGER DEFAULT 0,
+ALTER COLUMN "title" DROP NOT NULL;
