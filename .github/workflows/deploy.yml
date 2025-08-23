@@ -81,6 +81,7 @@ jobs:
 
       - name: Replace placeholders in task definition
         id: task-def
+        # name of task definition created: app-[environment]-task eg. t3-todo-staging-task
         # Fill ENV and Docker image URI variable in the ECS taskdef template with values depending on the environment/branch we are running for
         # sed (stream editor) is a Unix command used for text substitution and editing. string inside "" is wat we want to replace
         # s/\pattern/replacement/flags is how we are substituting the ENV variables and IMAGE_URI with the actual values
